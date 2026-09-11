@@ -1,0 +1,30 @@
+{
+  "name": "@darkrei08/pi-cockpit-tools-sync",
+  "version": "0.1.0",
+  "description": "Pi extension that reads desktop cockpit-tools accounts/quotas, syncs Pi auth, and provisions a multi-account rotator (commands: /cockpit-sync, /cockpit-provision, /cockpit-proxy).",
+  "main": "index.js",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "pi",
+    "pi-extension",
+    "pi-agent",
+    "cockpit-tools",
+    "ai-proxy",
+    "antigravity",
+    "rotator",
+    "multi-account"
+  ],
+  "author": "darkrei08",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/darkrei08/pi-cockpit-tools-sync.git"
+  },
+  "bugs": {
+    "url": "https://github.com/darkrei08/pi-cockpit-tools-sync/issues"
+  },
+  "homepage": "https://github.com/darkrei08/pi-cockpit-tools-sync"
+}
