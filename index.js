@@ -6,14 +6,14 @@
  * - /cockpit-accounts: List all Cockpit Tools accounts
  * - /cockpit-switch <email>: Switch active Cockpit account and sync OAuth token to Pi
  * - /cockpit-sync: Sync current Cockpit account to Pi auth.json
- * - /cockpit-provision: Provision all Cockpit accounts into pi-antigravity-rotator
- * - /cockpit-proxy <cmd>: Manage local Proxy Rotator daemon (start, enable, disable, status, logs)
+ * - /cockpit-provision: Provision all Cockpit accounts into tuxevil-rotator
+ * - /cockpit-proxy <cmd>: Run tuxevil-rotator status, doctor, import, or start
  */
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { execFileSync, spawn } = require('child_process');
 const { createDecipheriv } = require('crypto');
 
 const HOME = os.homedir();
@@ -147,7 +147,7 @@ function provisionRotator() {
     return { ok: false, error: 'cockpit_not_found' };
   }
 
-  const configDir = path.join(HOME, '.pi-antigravity-rotator');
+  const configDir = process.env.TUXEVIL_ROTATOR_DIR || path.join(HOME, '.tuxevil-rotator');
   const configPath = path.join(configDir, 'accounts.json');
   const existingConfig = readJson(configPath) || { proxyPort: 51200, accounts: [] };
   const existingAccounts = Array.isArray(existingConfig.accounts) ? existingConfig.accounts : [];
@@ -157,7 +157,7 @@ function provisionRotator() {
 
   for (const account of accounts) {
     const detail = loadAccountDetail(account.id);
-    if (!detail || !detail.token || detail.disabled) continue;
+    if (!detail || !detail.token || detail.disabled || !detail.token.refresh_token) continue;
 
     const email = detail.email || detail.token?.email || account.email;
     let tier = detail.quota?.subscription_tier || 'unknown';
@@ -167,17 +167,29 @@ function provisionRotator() {
     else if (tier.includes('ultra')) tier = 'ultra';
     else tier = 'unknown';
 
-    provisioned.push({
-      email,
-      tier,
-      projectId: 'cockpit-proxy',
+    const projectId = detail.token.project_id || detail.project_id || 'aicode-consumers';
+    const credential = {
+      provider: 'google-antigravity',
       refreshToken: detail.token.refresh_token,
+      projectId,
+      projectSource: 'google',
+    };
+
+    provisioned.push({
+      provider: 'google-antigravity',
+      email,
+      refreshToken: detail.token.refresh_token,
+      projectId,
+      projectSource: 'google',
       label: `Cockpit: ${email}`,
+      tier,
+      credentials: [credential],
       syncedFromCockpit: true,
     });
   }
 
-  existingConfig.accounts = [...keptAccounts, ...provisioned];
+  existingConfig.proxyPort = existingConfig.proxyPort || 51200;
+    existingConfig.accounts = [...keptAccounts, ...provisioned];
   writeJson(configPath, existingConfig);
 
   return {
@@ -383,7 +395,7 @@ module.exports = function cockpitToolsExtension(api) {
 
   // Slash command: /cockpit-provision
   api.registerCommand('cockpit-provision', {
-    description: 'Provision all Cockpit accounts into pi-antigravity-rotator',
+    description: 'Provision all Cockpit accounts into tuxevil-rotator',
     handler: (_args, ctx) => {
       const res = provisionRotator();
       if (res.ok) {
@@ -396,22 +408,29 @@ module.exports = function cockpitToolsExtension(api) {
 
   // Slash command: /cockpit-proxy <cmd>
   api.registerCommand('cockpit-proxy', {
-    description: 'Manage local Proxy Rotator daemon (start, enable, disable, status, logs)',
+    description: 'Run tuxevil-rotator status, doctor, import, or start',
     handler: (args, ctx) => {
-      const proxyScript = path.join(__dirname, '..', 'scripts', 'wz-ai-proxy.js');
-      if (!fs.existsSync(proxyScript)) {
-        ctx.ui.notify('⚠️ Proxy script wz-ai-proxy.js not found.', 'warning');
-        return;
-      }
-      const cmd = args ? args.trim() : 'status';
-      try {
-        const output = execSync(`node "${proxyScript}" ${cmd}`, { encoding: 'utf8' });
-        ctx.ui.notify(output, 'info');
-      } catch (e) {
-        ctx.ui.notify(`Proxy command error: ${e.message}`, 'error');
-      }
-    },
-  });
+      const cmd = (args || 'status').trim().split(/\s+/)[0];
+        const supported = new Set(['status', 'doctor', 'import', 'start']);
+        if (!supported.has(cmd)) {
+          ctx.ui.notify('Usage: /cockpit-proxy [status|doctor|import|start]', 'warning');
+          return;
+        }
+        const binary = process.env.TUXEVIL_ROTATOR_BIN || 'tuxevil-rotator';
+        if (cmd === 'start') {
+          const child = spawn(binary, ['start'], { detached: true, stdio: 'ignore', windowsHide: true });
+          child.unref();
+          ctx.ui.notify('✅ Started tuxevil-rotator in the background.', 'info');
+          return;
+        }
+        try {
+          const output = execFileSync(binary, [cmd], { encoding: 'utf8' });
+          ctx.ui.notify(output || `tuxevil-rotator ${cmd} completed.`, 'info');
+        } catch (e) {
+          ctx.ui.notify(`tuxevil-rotator ${cmd} error: ${e.message}`, 'error');
+        }
+                },
+      });
 
   console.log('🛠️ pi-cockpit-tools-sync extension loaded.');
 };

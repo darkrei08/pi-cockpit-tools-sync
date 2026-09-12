@@ -20,12 +20,13 @@ pi install github:darkrei08/pi-cockpit-tools-sync
 
 ## Commands
 
-- `/cockpit-sync` — syncs the active Cockpit Tools account to Pi's
+- `/cockpit-sync`: syncs the active Cockpit Tools account to Pi's
   `~/.pi/agent/auth.json`.
-- `/cockpit-provision` — provisions all available Cockpit Tools accounts into
-  the `pi-antigravity-rotator` configuration.
-- `/cockpit-proxy <command>` — manages the local Proxy Rotator daemon, such as
-  `status`, `start`, `enable`, `disable`, or `logs`.
+- `/cockpit-provision`: provisions all available Cockpit Tools accounts into
+  the `tuxevil-rotator` configuration at `~/.tuxevil-rotator/accounts.json`
+  (or `$TUXEVIL_ROTATOR_DIR/accounts.json`).
+- `/cockpit-proxy <command>`: runs `tuxevil-rotator` with `status`, `doctor`,
+  `import`, or `start`. `start` is launched in the background.
 
 The extension also registers `/cockpit` and `/cockpit-status` for account and
 quota status, `/cockpit-accounts` to list accounts, `/cockpit-switch <email>`
@@ -54,7 +55,9 @@ data directory. If no candidate contains a marker, the default remains
 - The extension never commits changes.
 - Token values are never printed by the extension.
 - It reads Cockpit Tools account/quota data and writes only the Pi auth and
-  rotator configuration files needed by the commands.
+  tuxevil-rotator configuration files needed by the commands.
+- Existing non-Cockpit rotator accounts are preserved; only entries marked
+  `syncedFromCockpit` are replaced during provisioning.
 
 ## License
 

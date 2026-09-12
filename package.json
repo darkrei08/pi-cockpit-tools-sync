@@ -1,6 +1,6 @@
 {
   "name": "@darkrei08/pi-cockpit-tools-sync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi extension that reads desktop cockpit-tools accounts/quotas, syncs Pi auth, and provisions a multi-account rotator (commands: /cockpit-sync, /cockpit-provision, /cockpit-proxy).",
   "main": "index.js",
   "publishConfig": {
